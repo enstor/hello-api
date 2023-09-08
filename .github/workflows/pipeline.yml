@@ -26,7 +26,25 @@ jobs:
       run: go get -t ./...
 
     - name: Run Test
-      run: go test ./...
+      run: go test ./... -coverprofile=coverage.out
+
+    - name: Coverage Check
+      run: go tool cover -func coverage.out \
+        | grep "total:" | awk '{print ((int($$3) > 80) != 1) }'
+    
+    - name: Generate Report
+      run: go tool cover -html=coverage.out -o cover.html
+
+    - name: Copy Files
+      run: |
+           mkdir  reports
+           cp cover.xhtml reports/.
+ 
+    - name: Archive
+      uses: actions/upload-artifact@v2
+      with:
+          name: reports
+          path: reports
 
   build:
     name: Build App
@@ -55,3 +73,42 @@ jobs:
       with:
           name: api
           path: artifacts
+
+  deliver:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Download binary
+      uses: actions/download-artifact@v2
+      with:
+        name: api
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          Still in experimentation phase
+        draft: true
+        prerelease: true
+
+    - name: Upload Release Binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN:
+          ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url:
+          ${{ steps.create_release.outputs.upload_url }}
+        asset_path: api
+        asset_name: api
+        asset_content_type: application/octet-stream
