@@ -14,4 +14,4 @@
 - [ ] Create translation endpoint
 - [ ] Store translations in short-term storage
 - [ ] Call existing service for translation
-- [ ] Move towards long-term storage
+- [ ] Move towards long-term storag
